@@ -10,8 +10,8 @@
     --bg1:#0b1220; --bg2:#0a1120; --bg3:#0a0f1a;
     --card:#0f172a; --text:#e5e7eb; --muted:#94a3b8; --accent:#10b981; --accent2:#22d3ee;
     --cellW: 60px;
-    --whiteH: 210px;           /* ความสูงลิ่มขาวฐาน */
-    --blackScale: .62;         /* สัดส่วนลิ่มดำเทียบลิ่มขาว */
+    --whiteH: 210px;
+    --blackScale: .62;
   }
   *{box-sizing:border-box}
   html{background:#0a0f1a}
@@ -33,14 +33,18 @@
   }
   h1{font-size:clamp(18px,2vw,24px); font-weight:600; margin:0 0 12px}
   .row{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+  .controls{gap:16px}
+  .controls label{display:flex; gap:8px; align-items:center; font-size:14px; cursor:pointer}
+  /* ให้โหมดเสียง + Pink Noise ชิดบรรทัดเดียวกันเสมอ */
+  .modeRow{display:flex; gap:8px; align-items:center; flex-wrap:nowrap; white-space:nowrap}
+
   .card{background:linear-gradient(180deg, rgba(17,24,39,.7), rgba(15,23,42,.7)); border:1px solid #1f2937; border-radius:16px; padding:16px; box-shadow:0 8px 28px rgba(0,0,0,.35)}
   .card + .card{margin-top:16px}
   .label{font-size:12px; color:var(--muted); margin-bottom:6px}
   .value{font-size:clamp(18px,2.6vw,22px); font-weight:700; font-variant-numeric:tabular-nums}
   .big{font-size:clamp(26px,4vw,34px); font-weight:800; font-variant-numeric:tabular-nums}
   .small{font-size:12px; color:var(--muted)}
-  .controls{gap:16px}
-  .controls label{display:flex; gap:8px; align-items:center; font-size:14px; cursor:pointer}
+
   input[type="checkbox"], input[type="range"], select{accent-color:var(--accent)}
   select{background:#111827; color:#e5e7eb; border:1px solid #374151; border-radius:10px; padding:6px 10px}
 
@@ -76,14 +80,16 @@
   .black:active{transform:translateX(-50%) translateY(1px)}
   .blab{position:absolute; bottom:8px; left:0; right:0; text-align:center; font-size:10px; color:#e5e7eb}
 
-  /* มือถือแนวนอน – ยืดลิ่มขาวลงอีกนิด */
+  /* มือถือแนวนอน */
   @media (max-width: 920px) and (orientation:landscape){
     :root{ --cellW: clamp(44px, 6.8vw, 64px); --whiteH: clamp(180px, 45vh, 260px); }
-    .grid4{ grid-template-columns:repeat(4, minmax(0,1fr)); gap:8px }
+    .grid4{ gap:8px }
     .box{ padding:8px 10px }
     .label{ font-size:11px }
     .value{ font-size:clamp(16px,2.2vw,20px) }
     h1{ font-size:clamp(16px,2.2vw,20px) }
+    /* กันโหมดเสียง + pink noise แตกบรรทัด */
+    .modeRow{gap:6px}
   }
 
   /* กล่อง 4 ช่องให้เตี้ยพอดีข้อความ */
@@ -101,16 +107,20 @@
         <label><input type="checkbox" id="toggleHarm" checked> แสดง Harmonics 2–4</label>
         <label><input type="checkbox" id="toggleSub" checked> แสดง Subharmonic 1/2</label>
         <label><input type="checkbox" id="togglePlay" checked> เล่นเสียงเมื่อกด</label>
-        <label class="row" style="gap:8px">โหมดเสียง
-          <select id="oscType">
-            <option value="sine" selected>Sine</option>
-            <option value="square">Square</option>
-            <option value="sawtooth">Saw</option>
-            <option value="triangle">Triangle</option>
-            <option value="feedback">Feedback</option>
-          </select>
-        </label>
-        <button id="pinkBtn" class="btn" aria-pressed="false">Pink Noise</button>
+
+        <!-- รวมโหมดเสียง + Pink Noise ไว้บรรทัดเดียวกัน -->
+        <div class="modeRow">
+          <label class="row" style="gap:8px; white-space:nowrap">โหมดเสียง
+            <select id="oscType">
+              <option value="sine" selected>Sine</option>
+              <option value="square">Square</option>
+              <option value="sawtooth">Saw</option>
+              <option value="triangle">Triangle</option>
+              <option value="feedback">Feedback</option>
+            </select>
+          </label>
+          <button id="pinkBtn" class="btn" aria-pressed="false">Pink Noise</button>
+        </div>
       </div>
     </header>
 
@@ -196,8 +206,8 @@
   function toMaster(n){ return n.connect(master); }
 
   function hiAttenBasic(freq){
-    if (freq >= 4180) return 0.28; // บริเวณ C8
-    if (freq >= 2090) return 0.55; // C7–B7
+    if (freq >= 4180) return 0.28;
+    if (freq >= 2090) return 0.55;
     return 1.0;
   }
 
@@ -272,7 +282,6 @@
     gate.gain.linearRampToValueAtTime(tgt, now + attackMs/1000);
 
     noise.start(now); noise.stop(now + 0.14);
-    excOsc.start(now);
     fbGraph = {ctx, gate, fb, excOsc, noise};
   }
   function stopFeedback(immediate=false){
@@ -324,7 +333,6 @@
   // ---------- build keys (A0–C8) ----------
   const rangeMin = noteToMidi('A0');  // 21
   const rangeMax = noteToMidi('C8');  // 108
-
   function withinRange(note){ const m=noteToMidi(note); return m>=rangeMin && m<=rangeMax; }
 
   function addWhiteCell(container, name){
@@ -336,7 +344,7 @@
     const base = name[0];
     if(hasBlack[base]){
       const bn = sharpOf[base] + name.match(/\d+$/)[0];
-      if(withinRange(bn)){ // อย่าทำ C#8 เกินช่วง
+      if(withinRange(bn)){
         const bbtn=document.createElement('button'); bbtn.type='button'; bbtn.className='black';
         bbtn.innerHTML='<span class="blab">'+bn+'</span>';
         bindKey(bbtn, bn); cell.appendChild(bbtn);
@@ -348,25 +356,22 @@
   function buildFullKeyboard(){
     keysWrap.innerHTML='';
 
-    // A0–B0 (pre-octave)
     const pre=document.createElement('div'); pre.className='oct';
     addWhiteCell(pre, 'A0'); addWhiteCell(pre, 'B0');
     keysWrap.appendChild(pre);
 
-    // C1–B7 (เต็มออคเตฟ)
     for(let oct=1; oct<=7; oct++){
       const octWrap=document.createElement('div'); octWrap.className='oct';
       ['C','D','E','F','G','A','B'].forEach(letter=> addWhiteCell(octWrap, `${letter}${oct}`));
       keysWrap.appendChild(octWrap);
     }
 
-    // C8 ปิดท้าย
     const last=document.createElement('div'); last.className='oct';
-    addWhiteCell(last, 'C8'); // จะไม่สร้าง C#8 เพราะ withinRange() กันไว้แล้ว
+    addWhiteCell(last, 'C8');
     keysWrap.appendChild(last);
   }
 
-  // ---------- drag-to-scroll + center-on-press ----------
+  // ---------- drag-to-scroll ----------
   const kb = document.querySelector('.keyboard');
   let dragging=false, startX=0, startScroll=0;
 
@@ -399,11 +404,10 @@
 
   function bindKey(btn, note){
     btn.addEventListener('pointerdown', e=>{
-      if(dragging) return;       // ถ้ากำลังลาก ไม่ยิงเสียง
+      if(dragging) return;        // ถ้ากำลังลาก ไม่ยิงเสียง
       e.preventDefault();
       onPress(note);
-      // เลื่อนให้คีย์มาอยู่กลางจอแบบสุภาพ
-      btn.scrollIntoView({inline:'center', block:'nearest', behavior:'smooth'});
+      // **ตัด auto-center ออกตามที่ขอ**
       const end=()=>{ onRelease(); window.removeEventListener('pointerup', end, true); window.removeEventListener('pointercancel', end, true); };
       window.addEventListener('pointerup', end, true); window.addEventListener('pointercancel', end, true);
     }, {passive:false});
